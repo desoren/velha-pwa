@@ -1,3 +1,3 @@
-# Jogo da Velha PWA
+# Jogo da Velha PWA (GitHub Pages)
 
-Versão PWA jogável e instalável. Deploy fácil via GitHub Pages ou Netlify.
+Suba tudo na raiz e ative Pages (main / root). Recarregue 2x para ativar o SW.
