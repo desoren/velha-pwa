@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Jogo da Velha (PWA)</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-512.svg" type="image/svg+xml">
+  <style>
+    :root{
+      --bg: #0b1220;
+      --panel: #0f172a;
+      --accent: #0ea5e9;
+      --accent-2:#38bdf8;
+      --line: #1f2a44;
+      --text:#e5f2ff;
+      --muted:#9fb6d1;
+      --win:#10b981;
+      --lose:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% -10%, #0a1830 0%, #071122 40%, #050b18 100%), var(--bg);
+      color:var(--text);
+      display:grid; place-items:center; padding:24px;
+    }
+    .app{width:min(900px, 100%);}
+    header{display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px}
+    .title{display:flex; align-items:center; gap:12px}
+    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center; box-shadow:0 10px 25px rgba(14,165,233,.35)}
+    .logo svg{width:26px;height:26px;}
+    h1{font-size:1.35rem; margin:0; letter-spacing:.4px}
+    .status{font-weight:600; color:#cfe9ff}
+
+    .wrap{display:grid; grid-template-columns: 1fr 320px; gap:18px}
+    @media (max-width: 860px){ .wrap{grid-template-columns:1fr; } }
+
+    .board{aspect-ratio:1/1; background:linear-gradient(180deg, #0c1428, #0b1220); border-radius:18px; padding:16px; border:1px solid #0e1a33; box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 20px 50px rgba(0,0,0,.3);}
+    .grid{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; height:100%}
+    .cell{position:relative; border-radius:16px; background: #0a1326; border:1px solid var(--line); cursor:pointer; display:grid; place-items:center; transition: transform .06s ease, background .2s ease, border-color .2s ease}
+    .cell:hover{transform:translateY(-1px); background:#0b1730; border-color:#1d2a4a}
+    .cell:disabled{opacity:.9; cursor:default; transform:none}
+    .cell span{font-size: clamp(48px, 9.5vw, 80px); font-weight:900; letter-spacing:3px; text-shadow: 0 8px 30px rgba(14,165,233,.2)}
+    .x{ color:#7dd3fc }
+    .o{ color:#a7f3d0 }
+    .win{ outline:2px solid var(--win); box-shadow:0 0 0 2px rgba(16,185,129,.35) inset}
+
+    .side{background:linear-gradient(180deg,#0c152a,#0a1326); border:1px solid #0e1a33; border-radius:18px; padding:16px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.02), 0 20px 50px rgba(0,0,0,.3)}
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between; margin:12px 0}
+    .badge{padding:6px 10px; border-radius:999px; background:#0b1b31; border:1px solid #123258; color:#cfe9ff; font-size:.82rem}
+
+    .controls{display:grid; gap:10px; margin-top:10px}
+    button{appearance:none; border:none; padding:12px 14px; border-radius:12px; font-weight:700; letter-spacing:.3px; cursor:pointer; transition:transform .05s ease, filter .2s ease; color:#031022}
+    button:active{transform:translateY(1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 10px 25px rgba(14,165,233,.35)}
+    .btn-secondary{background:#e2f3ff}
+    .btn-ghost{background:transparent; color:#cfe9ff; border:1px dashed #294061}
+
+    .scores{display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:10px}
+    .card{background:#0a1429; border:1px solid #123258; padding:10px; border-radius:12px; text-align:center}
+    .card h3{font-size:.82rem; font-weight:600; color:#b8d7f7; margin:0 0 6px}
+    .card div{font-size:1.4rem; font-weight:900}
+
+    .switch{display:flex; align-items:center; gap:10px}
+    .switch input{appearance:none; width:46px; height:28px; border-radius:999px; background:#274064; position:relative; outline:none; cursor:pointer; transition:background .2s}
+    .switch input::after{content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#dbeafe; transition:left .2s}
+    .switch input:checked{background:#0ea5e9}
+    .switch input:checked::after{left:21px}
+
+    footer{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; color:var(--muted); font-size:.9rem}
+    .dot{display:inline-block; width:8px; height:8px; border-radius:999px; background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,.6)}
+    .offline .dot{background:#f97316; box-shadow:0 0 10px rgba(249,115,22,.6)}
+    .install-hint{opacity:.85}
+    a{color:#7dd3fc}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8h18M3 16h18"/>
+            <path d="M8 3v18M16 3v18"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Jogo da Velha</h1>
+          <div class="status" id="status">Vez de: X</div>
+        </div>
+      </div>
+      <div>
+        <button id="installBtn" class="btn-secondary" hidden>Instalar</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <main class="board" aria-label="Tabuleiro do jogo">
+        <div class="grid" id="grid" role="grid" aria-label="Jogo da Velha">
+        </div>
+      </main>
+
+      <aside class="side">
+        <div class="row">
+          <span class="badge">Modo</span>
+          <label class="switch" title="Jogar contra o computador (fácil)">
+            <input id="cpuToggle" type="checkbox" />
+            <span>CPU (fácil)</span>
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-primary" id="newGame">Novo jogo</button>
+          <button class="btn-ghost" id="resetBoard">Limpar tabuleiro</button>
+          <button class="btn-secondary" id="clearScores">Zerar placar</button>
+        </div>
+
+        <div class="scores" aria-label="Placar">
+          <div class="card"><h3>Vitórias X</h3><div id="scoreX">0</div></div>
+          <div class="card"><h3>Empates</h3><div id="scoreD">0</div></div>
+          <div class="card"><h3>Vitórias O</h3><div id="scoreO">0</div></div>
+        </div>
+      </aside>
+    </div>
+
+    <footer id="net">
+      <div><span class="dot" aria-hidden="true"></span> <span id="netText">Online</span></div>
+      <div class="install-hint">Instale para jogar offline e em tela cheia.</div>
+    </footer>
+  </div>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(console.error);
+  }
+
+  // Instalação (A2HS)
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.hidden = false;
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return alert('Se o botão não aparecer, use “Adicionar à tela inicial”.');
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.hidden = true;
+  });
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isStandalone) installBtn.hidden = true;
+
+  // Estado de rede
+  const net = document.getElementById('net');
+  const netText = document.getElementById('netText');
+  function setNet(){
+    if (navigator.onLine){ net.classList.remove('offline'); netText.textContent = 'Online'; }
+    else { net.classList.add('offline'); netText.textContent = 'Offline'; }
+  }
+  window.addEventListener('online', setNet);
+  window.addEventListener('offline', setNet);
+  setNet();
+
+  // Lógica do jogo
+  const statusEl = document.getElementById('status');
+  const grid = document.getElementById('grid');
+  const cpuToggle = document.getElementById('cpuToggle');
+  const newGameBtn = document.getElementById('newGame');
+  const resetBoardBtn = document.getElementById('resetBoard');
+  const clearScoresBtn = document.getElementById('clearScores');
+  const scoreXEl = document.getElementById('scoreX');
+  const scoreOEl = document.getElementById('scoreO');
+  const scoreDEl = document.getElementById('scoreD');
+
+  const WINS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  let board = Array(9).fill(null);
+  let turn = 'X';
+  let lock = false;
+
+  const scores = JSON.parse(localStorage.getItem('velha:scores')||'{"X":0,"O":0,"D":0}');
+  updateScores();
+
+  const cells = [];
+  for (let i=0;i<9;i++){
+    const btn = document.createElement('button');
+    btn.className = 'cell';
+    btn.setAttribute('role','gridcell');
+    btn.setAttribute('aria-label', 'célula vazia');
+    btn.addEventListener('click', ()=>play(i));
+    const span = document.createElement('span');
+    btn.appendChild(span);
+    grid.appendChild(btn);
+    cells.push(btn);
+  }
+
+  function updateStatus(text){ statusEl.textContent = text; }
+  function updateScores(){
+    scoreXEl.textContent = scores.X; scoreOEl.textContent = scores.O; scoreDEl.textContent = scores.D;
+    localStorage.setItem('velha:scores', JSON.stringify(scores));
+  }
+  function setMark(i, m){
+    board[i] = m;
+    const btn = cells[i];
+    btn.disabled = true;
+    const s = btn.firstChild; s.textContent = m; s.className = m === 'X' ? 'x' : 'o';
+    btn.setAttribute('aria-label', 'célula com '+m);
+  }
+  function checkWin(){
+    for (const [a,b,c] of WINS){
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a,b,c];
+    }
+    if (board.every(Boolean)) return 'draw';
+    return null;
+  }
+  function switchTurn(){ turn = (turn === 'X') ? 'O' : 'X'; updateStatus('Vez de: '+turn); }
+
+  function play(i){
+    if (lock || board[i]) return;
+    setMark(i, turn);
+    const result = checkWin();
+    if (result){ finish(result); return; }
+    switchTurn();
+    if (cpuToggle.checked && turn === 'O'){
+      setTimeout(cpuMove, 260);
+    }
+  }
+
+  function finish(res){
+    lock = true;
+    if (res === 'draw'){
+      updateStatus('Empate!');
+      scores.D++; updateScores();
+    } else {
+      for (const idx of res) cells[idx].classList.add('win');
+      updateStatus('Vitória de '+turn+'!');
+      scores[turn]++; updateScores();
+    }
+  }
+
+  function cpuMove(){
+    const me = 'O', you='X';
+    const pick = (who)=>{
+      for (const [a,b,c] of WINS){
+        const line = [board[a],board[b],board[c]];
+        if (line.filter(x=>x===who).length===2 && line.includes(null)){
+          const idx = [a,b,c][line.indexOf(null)];
+          if (!board[idx]) return idx;
+        }
+      }
+      return null;
+    }
+    let move = pick(me) ?? pick(you);
+    if (move==null){
+      const corners = [0,2,6,8].filter(i=>!board[i]);
+      if (corners.length) move = corners[Math.floor(Math.random()*corners.length)];
+    }
+    if (move==null && !board[4]) move = 4;
+    if (move==null){
+      const free = board.map((v,i)=>v?null:i).filter(v=>v!=null); move = free[Math.floor(Math.random()*free.length)]
+    }
+
+    if (move!=null){ setMark(move, 'O'); }
+    const result = checkWin();
+    if (result){ finish(result); return; }
+    switchTurn();
+  }
+
+  function reset(clearMarks=false){
+    lock = false; turn = 'X'; updateStatus('Vez de: X');
+    board = Array(9).fill(null);
+    for (const c of cells){
+      c.disabled = false; c.classList.remove('win');
+      c.firstChild.textContent='';
+      c.firstChild.className='';
+      c.setAttribute('aria-label','célula vazia');
+    }
+  }
+
+  newGameBtn.addEventListener('click', ()=> reset(true));
+  resetBoardBtn.addEventListener('click', ()=> reset(true));
+  clearScoresBtn.addEventListener('click', ()=>{ scores.X=0; scores.O=0; scores.D=0; updateScores(); reset(true); });
+
+  reset(true);
+  </script>
+</body>
+</html>
