@@ -1,16 +1,42 @@
 {
+  "id": "com.desoren.velha",
   "name": "Jogo da Velha",
   "short_name": "Velha",
+  "description": "Um jogo da velha simples, offline e instalável (PWA).",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "start_url": ".",
+  "scope": ".",
+  "scope_extensions": [],
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0b1220",
   "theme_color": "#0ea5e9",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "pending",
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing"
+    ]
+  },
   "icons": [
     {
       "src": "icons/icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
     }
   ]
 }
