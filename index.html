@@ -11,12 +11,8 @@
   <link rel="manifest" href="/velha-pwa/manifest.webmanifest" />
   <link rel="icon" href="/velha-pwa/icons/icon-512.png" type="image/png">
   <style>
-    :root{
-      --bg: #0b1220; --panel: #0f172a; --accent: #0ea5e9; --accent-2:#38bdf8;
-      --line: #1f2a44; --text:#e5f2ff; --muted:#9fb6d1; --win:#10b981
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    :root{ --bg:#0b1220; --panel:#0f172a; --accent:#0ea5e9; --accent-2:#38bdf8; --line:#1f2a44; --text:#e5f2ff; --muted:#9fb6d1; --win:#10b981 }
+    *{box-sizing:border-box} html,body{height:100%}
     body{margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
       background: radial-gradient(1200px 600px at 20% -10%, #0a1830 0%, #071122 40%, #050b18 100%), var(--bg);
       color:var(--text); display:grid; place-items:center; padding:24px}
@@ -53,8 +49,7 @@
     footer{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; color:var(--muted); font-size:.9rem}
     .dot{display:inline-block; width:8px; height:8px; border-radius:999px; background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,.6)}
     .offline .dot{background:#f97316; box-shadow:0 0 10px rgba(249,115,22,.6)}
-    .install-hint{opacity:.85}
-    a{color:#7dd3fc}
+    .install-hint{opacity:.85} a{color:#7dd3fc}
   </style>
 </head>
 <body>
@@ -63,8 +58,7 @@
       <div class="title">
         <div class="logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 8h18M3 16h18"/>
-            <path d="M8 3v18M16 3v18"/>
+            <path d="M3 8h18M3 16h18"/><path d="M8 3v18M16 3v18"/>
           </svg>
         </div>
         <div>
@@ -72,9 +66,7 @@
           <div class="status" id="status">Vez de: X</div>
         </div>
       </div>
-      <div>
-        <button id="installBtn" class="btn-secondary" hidden>Instalar</button>
-      </div>
+      <div><button id="installBtn" class="btn-secondary" hidden>Instalar</button></div>
     </header>
 
     <div class="wrap">
@@ -86,8 +78,7 @@
         <div class="row">
           <span class="badge">Modo</span>
           <label class="switch" title="Jogar contra o computador (fácil)">
-            <input id="cpuToggle" type="checkbox" />
-            <span>CPU (fácil)</span>
+            <input id="cpuToggle" type="checkbox" /><span>CPU (fácil)</span>
           </label>
         </div>
         <div class="controls">
@@ -95,7 +86,6 @@
           <button class="btn-ghost" id="resetBoard">Limpar tabuleiro</button>
           <button class="btn-secondary" id="clearScores">Zerar placar</button>
         </div>
-
         <div class="scores" aria-label="Placar">
           <div class="card"><h3>Vitórias X</h3><div id="scoreX">0</div></div>
           <div class="card"><h3>Empates</h3><div id="scoreD">0</div></div>
@@ -111,163 +101,72 @@
   </div>
 
   <script>
-  // ---------- Service Worker (Paths absolutos p/ GitHub Pages) ----------
+  // SW para /velha-pwa/
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/velha-pwa/sw.js', { scope: '/velha-pwa/' }).catch(console.error);
   }
+  // Instalação
+  let deferredPrompt=null; const installBtn=document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt=e; installBtn.hidden=false; });
+  installBtn.addEventListener('click', async ()=>{ if(!deferredPrompt) return alert('Use “Adicionar à tela inicial”.');
+    deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; installBtn.hidden=true; });
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) installBtn.hidden=true;
+  // Rede
+  const net=document.getElementById('net'), netText=document.getElementById('netText');
+  const setNet=()=>{ if(navigator.onLine){ net.classList.remove('offline'); netText.textContent='Online'; } else { net.classList.add('offline'); netText.textContent='Offline'; } };
+  window.addEventListener('online', setNet); window.addEventListener('offline', setNet); setNet();
+  // Jogo
+  const statusEl=document.getElementById('status'), grid=document.getElementById('grid'); const cpuToggle=document.getElementById('cpuToggle');
+  const newGameBtn=document.getElementById('newGame'); const resetBoardBtn=document.getElementById('resetBoard'); const clearScoresBtn=document.getElementById('clearScores');
+  const scoreXEl=document.getElementById('scoreX'); const scoreOEl=document.getElementById('scoreO'); const scoreDEl=document.getElementById('scoreD');
+  const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  let board=Array(9).fill(null), turn='X', lock=false;
+  const scores=JSON.parse(localStorage.getItem('velha:scores')||'{"X":0,"O":0,"D":0}'); updateScores();
+  const cells=[]; for(let i=0;i<9;i++){ const btn=document.createElement('button'); btn.className='cell'; btn.setAttribute('role','gridcell'); btn.setAttribute('aria-label','célula vazia'); btn.addEventListener('click',()=>play(i)); const span=document.createElement('span'); btn.appendChild(span); grid.appendChild(btn); cells.push(btn); }
+  function updateStatus(t){ statusEl.textContent=t; }
+  function updateScores(){ scoreXEl.textContent=scores.X; scoreOEl.textContent=scores.O; scoreDEl.textContent=scores.D; localStorage.setItem('velha:scores', JSON.stringify(scores)); }
+  function setMark(i,m){ board[i]=m; const btn=cells[i]; btn.disabled=true; const s=btn.firstChild; s.textContent=m; s.className=(m==='X'?'x':'o'); btn.setAttribute('aria-label','célula com '+m); }
+  function checkWin(){ for(const [a,b,c] of WINS){ if(board[a]&&board[a]===board[b]&&board[a]===board[c]) return [a,b,c]; } if(board.every(Boolean)) return 'draw'; return null; }
+  function switchTurn(){ turn=(turn==='X')?'O':'X'; updateStatus('Vez de: '+turn); }
+  function play(i){ if(lock||board[i]) return; setMark(i,turn); const r=checkWin(); if(r){ finish(r); return; } switchTurn(); if(cpuToggle.checked&&turn==='O'){ setTimeout(cpuMove,260); } }
+  function finish(res){ lock=true; if(res==='draw'){ updateStatus('Empate!'); scores.D++; updateScores(); } else { for(const idx of res) cells[idx].classList.add('win'); updateStatus('Vitória de '+turn+'!'); scores[turn]++; updateScores(); } }
+  function cpuMove(){ const me='O',you='X'; const pick=(who)=>{ for(const [a,b,c] of WINS){ const line=[board[a],board[b],board[c]]; if(line.filter(x=>x===who).length===2&&line.includes(null)){ const idx=[a,b,c][line.indexOf(null)]; if(!board[idx]) return idx; } } return null; };
+    let move=pick(me)??pick(you); if(move==null){ const corners=[0,2,6,8].filter(i=>!board[i]); if(corners.length) move=corners[Math.floor(Math.random()*corners.length)]; }
+    if(move==null&&!board[4]) move=4; if(move==null){ const free=board.map((v,i)=>v?null:i).filter(v=>v!=null); move=free[Math.floor(Math.random()*free.length)]; }
+    if(move!=null){ setMark(move,'O'); } const r=checkWin(); if(r){ finish(r); return; } switchTurn(); }
+  function reset(){ lock=false; turn='X'; updateStatus('Vez de: X'); board=Array(9).fill(null); for(const c of cells){ c.disabled=false; c.classList.remove('win'); c.firstChild.textContent=''; c.firstChild.className=''; c.setAttribute('aria-label','célula vazia'); } }
+  newGameBtn.addEventListener('click', reset); resetBoardBtn.addEventListener('click', reset); clearScoresBtn.addEventListener('click', ()=>{ scores.X=0; scores.O=0; scores.D=0; updateScores(); reset(); });
+  reset();
+  </script>
 
-  // ---------- Instalação (A2HS) ----------
-  let deferredPrompt = null;
-  const installBtn = document.getElementById('installBtn');
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.hidden = false;
-  });
-  installBtn.addEventListener('click', async () => {
-    if (!deferredPrompt) return alert('Se o botão não aparecer, use “Adicionar à tela inicial”.');
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice; // { outcome, platform }
-    deferredPrompt = null;
-    installBtn.hidden = true;
-  });
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  if (isStandalone) installBtn.hidden = true;
-
-  // ---------- Estado de rede ----------
-  const net = document.getElementById('net');
-  const netText = document.getElementById('netText');
-  function setNet(){
-    if (navigator.onLine){ net.classList.remove('offline'); netText.textContent = 'Online'; }
-    else { net.classList.add('offline'); netText.textContent = 'Offline'; }
-  }
-  window.addEventListener('online', setNet);
-  window.addEventListener('offline', setNet);
-  setNet();
-
-  // ---------- Lógica do jogo ----------
-  const statusEl = document.getElementById('status');
-  const grid = document.getElementById('grid');
-  const cpuToggle = document.getElementById('cpuToggle');
-  const newGameBtn = document.getElementById('newGame');
-  const resetBoardBtn = document.getElementById('resetBoard');
-  const clearScoresBtn = document.getElementById('clearScores');
-  const scoreXEl = document.getElementById('scoreX');
-  const scoreOEl = document.getElementById('scoreO');
-  const scoreDEl = document.getElementById('scoreD');
-
-  const WINS = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
-  let board = Array(9).fill(null);
-  let turn = 'X';
-  let lock = false; // trava quando jogo acabou
-
-  const scores = JSON.parse(localStorage.getItem('velha:scores')||'{"X":0,"O":0,"D":0}');
-  updateScores();
-
-  // Cria células
-  const cells = [];
-  for (let i=0;i<9;i++){
-    const btn = document.createElement('button');
-    btn.className = 'cell';
-    btn.setAttribute('role','gridcell');
-    btn.setAttribute('aria-label', 'célula vazia');
-    btn.addEventListener('click', ()=>play(i));
-    const span = document.createElement('span');
-    btn.appendChild(span);
-    grid.appendChild(btn);
-    cells.push(btn);
-  }
-
-  function updateStatus(text){ statusEl.textContent = text; }
-  function updateScores(){
-    scoreXEl.textContent = scores.X; scoreOEl.textContent = scores.O; scoreDEl.textContent = scores.D;
-    localStorage.setItem('velha:scores', JSON.stringify(scores));
-  }
-  function setMark(i, m){
-    board[i] = m;
-    const btn = cells[i];
-    btn.disabled = true;
-    const s = btn.firstChild; s.textContent = m; s.className = m === 'X' ? 'x' : 'o';
-    btn.setAttribute('aria-label', 'célula com '+m);
-  }
-  function checkWin(){
-     for (const [a,b,c] of WINS){ if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a,b,c]; }
-     if (board.every(Boolean)) return 'draw';
-     return null;
-  }
-  function switchTurn(){ turn = (turn === 'X') ? 'O' : 'X'; updateStatus('Vez de: '+turn); }
-
-  function play(i){
-    if (lock || board[i]) return;
-    setMark(i, turn);
-    const result = checkWin();
-    if (result){ finish(result); return; }
-    switchTurn();
-    if (cpuToggle.checked && turn === 'O'){ // CPU simples
-      setTimeout(cpuMove, 260);
+  <!-- ENHANCE: Background Sync + Periodic Sync + Notifications -->
+  <script>
+  (async function enhancePWA(){
+    async function queueAndSync(){
+      const reg = await navigator.serviceWorker.getRegistration('/velha-pwa/');
+      if(!reg) return alert('SW não registrado');
+      reg.active?.postMessage({ type:'QUEUE_ACTION', payload:{ type:'save-score', at: Date.now() } });
+      if('sync' in reg){ try{ await reg.sync.register('sync-actions'); alert('Ação enfileirada para sincronizar.'); } catch{ alert('Sync não suportado.'); } }
+      else alert('Background Sync não suportado.');
     }
-  }
-
-  function finish(res){
-    lock = true;
-    if (res === 'draw'){
-      updateStatus('Empate!');
-      scores.D++; updateScores();
-    } else {
-      for (const idx of res) cells[idx].classList.add('win');
-      updateStatus('Vitória de '+turn+'!');
-      scores[turn]++; updateScores();
+    async function enablePeriodic(){
+      const reg = await navigator.serviceWorker.getRegistration('/velha-pwa/');
+      if(reg && 'periodicSync' in reg){ try{ await reg.periodicSync.register('update-assets', { minInterval: 24*60*60*1000 }); alert('Periodic Sync habilitado.'); } catch{ alert('Periodic Sync indisponível.'); } }
+      else console.info('Periodic Sync não suportado');
     }
-  }
-
-  function cpuMove(){
-    // Estratégia: 1) tenta ganhar 2) bloqueia 3) canto 4) centro 5) aleatório
-    const me = 'O', you='X';
-    const pick = (who)=>{
-      for (const [a,b,c] of WINS){
-        const line = [board[a],board[b],board[c]];
-        if (line.filter(x=>x===who).length===2 && line.includes(null)){
-          const idx = [a,b,c][line.indexOf(null)];
-          if (!board[idx]) return idx;
-        }
-      }
-      return null;
+    async function enableNotifications(){
+      if(!('Notification' in window)) return alert('Navegador sem Notifications');
+      const perm = await Notification.requestPermission(); if(perm!=='granted') return alert('Permissão negada');
+      const reg = await navigator.serviceWorker.getRegistration('/velha-pwa/');
+      await reg?.showNotification('Notificações ativas', { body:'Exemplo local', icon:'/velha-pwa/icons/icon-192.png' });
     }
-    let move = pick(me) ?? pick(you);
-    if (move==null){
-      const corners = [0,2,6,8].filter(i=>!board[i]);
-      if (corners.length) move = corners[Math.floor(Math.random()*corners.length)];
+    const side = document.querySelector('.side .controls');
+    if(side){
+      const b1=document.createElement('button'); b1.className='btn-ghost'; b1.textContent='Testar Background Sync'; b1.onclick=queueAndSync; side.appendChild(b1);
+      const b2=document.createElement('button'); b2.className='btn-ghost'; b2.textContent='Habilitar Periodic Sync'; b2.onclick=enablePeriodic; side.appendChild(b2);
+      const b3=document.createElement('button'); b3.className='btn-ghost'; b3.textContent='Ativar Notificações'; b3.onclick=enableNotifications; side.appendChild(b3);
     }
-    if (move==null && !board[4]) move = 4;
-    if (move==null){ const free = board.map((v,i)=>v?null:i).filter(v=>v!=null); move = free[Math.floor(Math.random()*free.length)] }
-
-    if (move!=null){ setMark(move, 'O'); }
-    const result = checkWin();
-    if (result){ finish(result); return; }
-    switchTurn();
-  }
-
-  function reset(clearMarks=false){
-    lock = false; turn = 'X'; updateStatus('Vez de: X');
-    board = Array(9).fill(null);
-    for (const c of cells){
-      c.disabled = false; c.classList.remove('win');
-      c.firstChild.textContent = '';
-      c.firstChild.className='';
-      c.setAttribute('aria-label','célula vazia');
-    }
-  }
-
-  newGameBtn.addEventListener('click', ()=> reset(true));
-  resetBoardBtn.addEventListener('click', ()=> reset(true));
-  clearScoresBtn.addEventListener('click', ()=>{ scores.X=0; scores.O=0; scores.D=0; updateScores(); reset(true); });
-
-  // Inicializa
-  reset(true);
+  })();
   </script>
 </body>
 </html>

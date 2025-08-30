@@ -1,3 +1,2 @@
-# Jogo da Velha PWA (GitHub Pages)
-
-Versão estática com manifest completo para passar nos checks do Lighthouse.
+# Velha PWA — Avançado (offline + sync + push)
+Suba todos os arquivos na raiz do repo e confirme Pages em main/root. Recarregue 2x para atualizar o SW.
